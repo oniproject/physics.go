@@ -1,41 +1,38 @@
 package geometries
 
 import (
-	_ "github.com/oniproject/physics.go"
+	"github.com/oniproject/physics.go"
+	"github.com/oniproject/physics.go/geom"
 )
 
 type Rectangle struct {
 	Width, Height float64
 }
 
-func NewRectangle(w, h float64) Geometry {
+func NewRectangle(w, h float64) physics.Geometry {
 	return &Rectangle{w, h}
 }
 
-func (this *Rectangle) AABB(angle float64) AABB {
+func (this *Rectangle) AABB(angle float64) physics.AABB {
 	panic("not implemented")
 
 	if angle == 0 {
-		return NewAABB_byWH(this.width, this.height)
+		return physics.NewAABB_byWH(this.Width, this.Height)
 	}
 
-	//var scratch = Physics.scratchpad()
-	//,p = scratch.vector()
+	trans := physics.NewTransformAngle(angle)
 
-	/* FIXME trans := scratch.transform().setRotation(angle || 0)
-	xaxis := scratch.vector().set(1, 0).rotateInv(trans)
-	yaxis := scratch.vector().set(0, 1).rotateInv(trans)
-	xmax := this.FarthestHullPoint(xaxis, p).proj(xaxis)
-	xmin := -this.FarthestHullPoint(xaxis.negate(), p).proj(xaxis)
-	ymax := this.FarthestHullPoint(yaxis, p).proj(yaxis)
-	ymin := -this.FarthestHullPoint(yaxis.negate(), p).proj(yaxis)
-	*/
-	// scratch.done();*/
+	xaxis := trans.RotateInv(geom.Vector{1, 0})
+	yaxis := trans.RotateInv(geom.Vector{0, 1})
+	xmax := this.FarthestHullPoint(xaxis).Proj(xaxis)
+	xmin := this.FarthestHullPoint(xaxis.Times(-1)).Proj(xaxis)
+	ymax := this.FarthestHullPoint(yaxis).Proj(yaxis)
+	ymin := this.FarthestHullPoint(yaxis.Times(-1)).Proj(yaxis)
 
-	return NewAABB_byMM(xmin, ymin, xmax, ymax)
+	return physics.NewAABB_byMM(xmin, ymin, xmax, ymax)
 }
 
-func (this *Rectangle) FarthestCorePoint(dir Vector) Vector {
+func (this *Rectangle) FarthestHullPoint(dir geom.Vector) geom.Vector {
 	x, y := dir.X, dir.Y
 
 	switch {
@@ -56,10 +53,10 @@ func (this *Rectangle) FarthestCorePoint(dir Vector) Vector {
 		y = 0
 	}
 
-	return Vector{x, y}
+	return geom.Vector{x, y}
 }
 
-func (this *Rectangle) FarthestHullPoint(dir Vector, margin float64) Vector {
+func (this *Rectangle) FarthestCorePoint(dir geom.Vector, margin float64) geom.Vector {
 	result := this.FarthestHullPoint(dir)
 	x, y := result.X, result.Y
 
@@ -81,5 +78,5 @@ func (this *Rectangle) FarthestHullPoint(dir Vector, margin float64) Vector {
 		y = 0
 	}
 
-	return Vector{0, 0}
+	return geom.Vector{0, 0}
 }

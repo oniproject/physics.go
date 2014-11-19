@@ -159,3 +159,8 @@ func (p Vector) Angle(v *Vector) (ang float64) {
 
 	return
 }
+
+func (p Vector) Proj(v Vector) float64 {
+	dot := DotProduct(p, v)
+	return dot / v.Magnitude()
+}

@@ -9,8 +9,8 @@ type Geometry interface {
 	//Init(Options)
 	//Options() Options
 	AABB(angle float64) AABB
-	FarthestCorePoint(dir geom.Vector) geom.Vector
-	FarthestHullPoint(dir geom.Vector, margin float64) geom.Vector
+	FarthestCorePoint(dir geom.Vector, margin float64) geom.Vector
+	FarthestHullPoint(dir geom.Vector) geom.Vector
 }
 
 func IsPolygonConvex(hull []geom.Vector) bool {

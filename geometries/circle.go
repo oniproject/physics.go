@@ -7,22 +7,21 @@ import (
 
 type Circle struct {
 	Radius float64
-	aabb   physics.AABB
 }
 
 func NewCircle(radius float64) physics.Geometry {
-	return &Circle{radius, physics.AABB{}}
+	return &Circle{radius}
 }
 
 func (this *Circle) AABB(angle float64) physics.AABB {
-	if this.aabb.HW != r {
-		this.aabb = NewAABB_byMM(-r, -r, r, r)
-	}
-	return this.aabb
+	r := this.Radius
+	return physics.NewAABB_byMM(-r, -r, r, r)
 }
-func (this *Circle) FarthestCorePoint(dir geom.Vector) geom.Vector {
-	return dir.Normalize().Mult(this.Radius)
+func (this *Circle) FarthestHullPoint(dir geom.Vector) geom.Vector {
+	n := dir.Unit()
+	return n.Times(this.Radius)
 }
-func (this *Circle) FarthestHullPoint(dir geom.Vector, margin float64) geom.Vector {
-	return dir.Normalize().Mult(this.Radius - margin)
+func (this *Circle) FarthestCorePoint(dir geom.Vector, margin float64) geom.Vector {
+	n := dir.Unit()
+	return n.Times(this.Radius - margin)
 }

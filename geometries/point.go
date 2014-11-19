@@ -14,11 +14,11 @@ func NewPoint() physics.Geometry {
 func (this *Point) AABB(angle float64) physics.AABB {
 	return physics.AABB{}
 }
-func (this *Point) FarthestCorePoint(dir geom.Vector) geom.Vector {
+func (this *Point) FarthestHullPoint(dir geom.Vector) geom.Vector {
 	// not implemented.
 	return geom.Vector{0, 0}
 }
-func (this *Point) FarthestHullPoint(dir geom.Vector, margin float64) geom.Vector {
+func (this *Point) FarthestCorePoint(dir geom.Vector, margin float64) geom.Vector {
 	// not implemented.
 	return geom.Vector{0, 0}
 }
