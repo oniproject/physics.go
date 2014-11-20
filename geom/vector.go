@@ -117,28 +117,6 @@ func VectorChan(points []Vector) (ch <-chan Vector) {
 
 /// ................
 
-/*func (p *Vector) Clone(v Vector) (r Vector) {
-	r.X = p.X
-	r.Y = p.Y
-	return
-}*/
-
-func (p *Vector) Vadd(v *Vector) *Vector {
-	p.X += v.X
-	p.Y += v.Y
-	return p
-}
-func (p *Vector) Vsub(v *Vector) *Vector {
-	p.X += v.X
-	p.Y += v.Y
-	return p
-}
-func (p *Vector) Mult(n float64) *Vector {
-	p.X *= n
-	p.Y *= n
-	return p
-}
-
 func (p Vector) Angle(v *Vector) (ang float64) {
 	if p.Equals(Vector{0, 0}) {
 		return v.Angle(nil)

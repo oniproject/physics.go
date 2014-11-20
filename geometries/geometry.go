@@ -139,7 +139,7 @@ func PolygonCentroid(hull []geom.Vector) (ret geom.Vector) {
 	for _, next := range hull {
 		tmp := geom.CrossProduct(next, prev)
 		n := prev.Plus(next).Times(tmp)
-		ret.Vadd(&n)
+		ret = ret.Plus(n)
 		prev = next
 	}
 

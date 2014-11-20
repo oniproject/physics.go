@@ -13,8 +13,6 @@ func NewRectangle(w, h float64) Geometry {
 }
 
 func (this *Rectangle) AABB(angle float64) geom.AABB {
-	panic("not implemented")
-
 	if angle == 0 {
 		return geom.NewAABB_byWH(this.Width, this.Height)
 	}
