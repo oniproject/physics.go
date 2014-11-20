@@ -2,215 +2,140 @@ package geometries
 
 import (
 	"github.com/oniproject/physics.go/geom"
+	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
 func Test_Geometries(t *testing.T) {
-	It(t, "test if a polygon is convex", func() bool {
-		convex := []geom.Vector{
-			geom.Vector{X: 1, Y: 0},
-			geom.Vector{X: 0.5, Y: -0.5},
-			geom.Vector{X: -0.5, Y: -0.5},
-			geom.Vector{X: -1, Y: 0},
-			geom.Vector{X: 0, Y: 1},
-		}
-		convexReverse := []geom.Vector{
-			geom.Vector{X: 0, Y: 1},
-			geom.Vector{X: -1, Y: 0},
-			geom.Vector{X: -0.5, Y: -0.5},
-			geom.Vector{X: 0.5, Y: -0.5},
-			geom.Vector{X: 1, Y: 0},
-		}
-		notConvex := []geom.Vector{
-			geom.Vector{X: 1, Y: 0},
-			geom.Vector{X: 0.5, Y: -0.5},
-			geom.Vector{X: -0.5, Y: -0.5},
-			geom.Vector{X: -1, Y: 0},
-			geom.Vector{X: 2.3, Y: 1},
-		}
+	Convey("test Geometries", t, func() {
+		Convey("test if a polygon is convex", func() {
+			convex := []geom.Vector{
+				geom.Vector{X: 1, Y: 0},
+				geom.Vector{X: 0.5, Y: -0.5},
+				geom.Vector{X: -0.5, Y: -0.5},
+				geom.Vector{X: -1, Y: 0},
+				geom.Vector{X: 0, Y: 1},
+			}
+			convexReverse := []geom.Vector{
+				geom.Vector{X: 0, Y: 1},
+				geom.Vector{X: -1, Y: 0},
+				geom.Vector{X: -0.5, Y: -0.5},
+				geom.Vector{X: 0.5, Y: -0.5},
+				geom.Vector{X: 1, Y: 0},
+			}
+			notConvex := []geom.Vector{
+				geom.Vector{X: 1, Y: 0},
+				geom.Vector{X: 0.5, Y: -0.5},
+				geom.Vector{X: -0.5, Y: -0.5},
+				geom.Vector{X: -1, Y: 0},
+				geom.Vector{X: 2.3, Y: 1},
+			}
 
-		if !IsPolygonConvex(convex) {
-			t.Error("convex")
-			return false
-		}
-		if !IsPolygonConvex(convexReverse) {
-			t.Error("convexReverse")
-			return false
-		}
-		if IsPolygonConvex(notConvex) {
-			t.Error("notConvex")
-			return false
-		}
-		return true
-	})
+			So(IsPolygonConvex(convex), ShouldBeTrue)
+			So(IsPolygonConvex(convexReverse), ShouldBeTrue)
+			So(IsPolygonConvex(notConvex), ShouldBeFalse)
+		})
 
-	It(t, "check moments of inertia of polygons", func() bool {
-		point := []geom.Vector{
-			geom.Vector{X: 0, Y: 0},
-		}
-		line := []geom.Vector{
-			geom.Vector{X: -1, Y: 0},
-			geom.Vector{X: 1, Y: 0},
-		}
-		square := []geom.Vector{
-			geom.Vector{X: 1, Y: 1},
-			geom.Vector{X: 1, Y: -1},
-			geom.Vector{X: -1, Y: 1},
-			geom.Vector{X: -1, Y: -1},
-		}
+		Convey("check moments of inertia of polygons", func() {
+			point := []geom.Vector{
+				geom.Vector{X: 0, Y: 0},
+			}
+			line := []geom.Vector{
+				geom.Vector{X: -1, Y: 0},
+				geom.Vector{X: 1, Y: 0},
+			}
+			square := []geom.Vector{
+				geom.Vector{X: 1, Y: 1},
+				geom.Vector{X: 1, Y: -1},
+				geom.Vector{X: -1, Y: 1},
+				geom.Vector{X: -1, Y: -1},
+			}
 
-		if PolygonMOI(point) != 0 {
-			t.Error(point)
-			return false
-		}
-		if PolygonMOI(line) != 4.0/12.0 {
-			t.Error(line, PolygonMOI(line), 4.0/12.0)
-			return false
-		}
-		if PolygonMOI(square) != 2.0*2.0/6.0 {
-			t.Error(square, PolygonMOI(square), "!=", 2.0*2.0/6.0)
-			return false
-		}
-		return true
-	})
+			So(PolygonMOI(point), ShouldEqual, 0)
+			So(PolygonMOI(line), ShouldEqual, 4.0/12.0)
+			So(PolygonMOI(square), ShouldEqual, 2.0*2.0/6.0)
+		})
 
-	It(t, "check if points are inside a polygon", func() bool {
-		inside := geom.Vector{1, 0}
-		outside := geom.Vector{5, 5.1}
-		line := []geom.Vector{
-			geom.Vector{X: -5, Y: 0},
-			geom.Vector{X: 5, Y: 0},
-		}
-		square := []geom.Vector{
-			geom.Vector{X: 5, Y: 5},
-			geom.Vector{X: 5, Y: -5},
-			geom.Vector{X: -5, Y: 5},
-			geom.Vector{X: -5, Y: -5},
-		}
+		Convey("check if points are inside a polygon", func() {
+			inside := geom.Vector{1, 0}
+			outside := geom.Vector{5, 5.1}
+			line := []geom.Vector{
+				geom.Vector{X: -5, Y: 0},
+				geom.Vector{X: 5, Y: 0},
+			}
+			square := []geom.Vector{
+				geom.Vector{X: 5, Y: 5},
+				geom.Vector{X: 5, Y: -5},
+				geom.Vector{X: -5, Y: 5},
+				geom.Vector{X: -5, Y: -5},
+			}
 
-		if !IsPointInPolygon(inside, line) {
-			t.Error("inside line", line)
-			return false
-		}
-		if !IsPointInPolygon(inside, square) {
-			t.Error("inside square", square)
-			return false
-		}
-		if IsPointInPolygon(outside, line) {
-			t.Error("outside line", line)
-			return false
-		}
-		if IsPointInPolygon(outside, square) {
-			t.Error("outside square", square)
-			return false
-		}
-		return true
-	})
+			So(IsPointInPolygon(inside, line), ShouldBeTrue)
+			So(IsPointInPolygon(inside, square), ShouldBeTrue)
+			So(IsPointInPolygon(outside, line), ShouldBeFalse)
+			So(IsPointInPolygon(outside, square), ShouldBeFalse)
+		})
 
-	It(t, "calculate polygon area", func() bool {
-		point := []geom.Vector{
-			geom.Vector{X: 9, Y: 9},
-		}
-		line := []geom.Vector{
-			geom.Vector{X: 1, Y: 0},
-			geom.Vector{X: 5, Y: 0},
-		}
-		square := []geom.Vector{
-			geom.Vector{X: 5, Y: 5},
-			geom.Vector{X: 5, Y: 0},
-			geom.Vector{X: 0, Y: 0},
-			geom.Vector{X: 0, Y: 5},
-		}
-		squareReverse := []geom.Vector{
-			geom.Vector{X: 0, Y: 5},
-			geom.Vector{X: 0, Y: 0},
-			geom.Vector{X: 5, Y: 0},
-			geom.Vector{X: 5, Y: 5},
-		}
+		Convey("calculate polygon area", func() {
+			point := []geom.Vector{
+				geom.Vector{X: 9, Y: 9},
+			}
+			line := []geom.Vector{
+				geom.Vector{X: 1, Y: 0},
+				geom.Vector{X: 5, Y: 0},
+			}
+			square := []geom.Vector{
+				geom.Vector{X: 5, Y: 5},
+				geom.Vector{X: 5, Y: 0},
+				geom.Vector{X: 0, Y: 0},
+				geom.Vector{X: 0, Y: 5},
+			}
+			squareReverse := []geom.Vector{
+				geom.Vector{X: 0, Y: 5},
+				geom.Vector{X: 0, Y: 0},
+				geom.Vector{X: 5, Y: 0},
+				geom.Vector{X: 5, Y: 5},
+			}
 
-		if PolygonArea(point) != 0 {
-			t.Error("point")
-			return false
-		}
-		if PolygonArea(line) != 0 {
-			t.Error("line")
-			return false
-		}
-		if PolygonArea(square) != 25 {
-			t.Error("square", PolygonArea(square))
-			return false
-		}
-		if PolygonArea(squareReverse) != -25 {
-			t.Error("squareReverse", PolygonArea(squareReverse))
-			return false
-		}
-		return true
-	})
+			So(PolygonArea(point), ShouldEqual, 0)
+			So(PolygonArea(line), ShouldEqual, 0)
+			So(PolygonArea(square), ShouldEqual, 25)
+			So(PolygonArea(squareReverse), ShouldEqual, -25)
+		})
 
-	It(t, "calculate polygon centroid", func() bool {
-		point := []geom.Vector{
-			geom.Vector{X: 9, Y: 9},
-		}
-		line := []geom.Vector{
-			geom.Vector{X: 1, Y: 0},
-			geom.Vector{X: 5, Y: 0},
-		}
-		square := []geom.Vector{
-			geom.Vector{X: 3, Y: 3},
-			geom.Vector{X: 3, Y: 0},
-			geom.Vector{X: 0, Y: 0},
-			geom.Vector{X: 0, Y: 3},
-		}
+		Convey("calculate polygon centroid", func() {
+			point := []geom.Vector{
+				geom.Vector{X: 9, Y: 9},
+			}
+			line := []geom.Vector{
+				geom.Vector{X: 1, Y: 0},
+				geom.Vector{X: 5, Y: 0},
+			}
+			square := []geom.Vector{
+				geom.Vector{X: 3, Y: 3},
+				geom.Vector{X: 3, Y: 0},
+				geom.Vector{X: 0, Y: 0},
+				geom.Vector{X: 0, Y: 3},
+			}
 
-		var centroid geom.Vector
+			So(PolygonCentroid(point), ShouldResemble, geom.Vector{9, 9})
+			So(PolygonCentroid(line), ShouldResemble, geom.Vector{3, 0})
+			So(PolygonCentroid(square), ShouldResemble, geom.Vector{1.5, 1.5})
+		})
 
-		centroid = PolygonCentroid(point)
-		if !centroid.Equals(geom.Vector{9, 9}) {
-			t.Error("point", centroid)
-			return false
-		}
+		Convey("check nearest point on a line", func() {
+			var result geom.Vector
+			line1 := geom.Vector{0, 2}
+			line2 := geom.Vector{6, 8}
 
-		centroid = PolygonCentroid(line)
-		if !centroid.Equals(geom.Vector{3, 0}) {
-			t.Error("line", centroid)
-			return false
-		}
+			result = NearestPointOnLine(geom.Vector{1, -5}, line1, line2)
+			So(result, ShouldResemble, line1)
 
-		centroid = PolygonCentroid(square)
-		if !centroid.Equals(geom.Vector{1.5, 1.5}) {
-			t.Error("square", centroid)
-			return false
-		}
+			result = NearestPointOnLine(geom.Vector{2, 2}, line1, line2)
+			So(result, ShouldResemble, geom.Vector{1, 3})
 
-		return true
-	})
-
-	It(t, "check nearest point on a line", func() bool {
-		var point, result geom.Vector
-		line1 := geom.Vector{0, 2}
-		line2 := geom.Vector{6, 8}
-
-		point.X, point.Y = 1, -5
-		result = NearestPointOnLine(point, line1, line2)
-		if result.X != line1.X || result.Y != line1.Y {
-			t.Error(point, result)
-			return false
-		}
-
-		point.X, point.Y = 2, 2
-		result = NearestPointOnLine(point, line1, line2)
-		if result.X != 1 || result.Y != 3 {
-			t.Error(point, result)
-			return false
-		}
-
-		point.X, point.Y = 10, 8
-		result = NearestPointOnLine(point, line1, line2)
-		if result.X != line2.X || result.Y != line2.Y {
-			t.Error(point, result)
-			return false
-		}
-
-		return true
+			result = NearestPointOnLine(geom.Vector{10, 8}, line1, line2)
+			So(result, ShouldResemble, line2)
+		})
 	})
 }

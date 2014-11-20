@@ -2,14 +2,9 @@ package geometries
 
 import (
 	"github.com/oniproject/physics.go/geom"
+	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
-
-func It(t *testing.T, str string, fn func() bool) {
-	if !fn() {
-		t.Error("It", str)
-	}
-}
 
 func Test_ConvexPolygon(t *testing.T) {
 	square := NewConvexPolygon([]geom.Vector{
@@ -30,121 +25,75 @@ func Test_ConvexPolygon(t *testing.T) {
 		{-1, 0},
 		{0, 1},
 	})
-
 	shape := NewConvexPolygon([]geom.Vector{
 		{0, 242},
 		{300, 242.01},
 		{150, 45},
 	})
 
-	// It(t, "polygons must have verti
+	Convey("test ConvexPolygon", t, func() {
 
-	It(t, "check centroid repositioning", func() bool {
-		verts := square.Vertices
-		trues := []geom.Vector{
-			{2.5, 2.5},
-			{2.5, -2.5},
-			{-2.5, -2.5},
-			{-2.5, 2.5},
-		}
-		for i := range verts {
-			if verts[i].X != trues[i].X || verts[i].Y != trues[i].Y {
-				t.Error(i, verts[i])
-				return false
+		// It(t, "polygons must have verti
+
+		Convey("check centroid repositioning", func() {
+			verts := square.Vertices
+			trues := []geom.Vector{
+				{2.5, 2.5},
+				{2.5, -2.5},
+				{-2.5, -2.5},
+				{-2.5, 2.5},
 			}
-		}
-		return true
-	})
+			for i := range verts {
+				So(verts[i], ShouldResemble, trues[i])
+			}
+		})
 
-	It(t, "check farthest hull points pentagon", func() bool {
-		var dir, pt geom.Vector
-		var i int
+		Convey("check farthest hull points pentagon", func() {
+			var pt geom.Vector
 
-		dir = geom.Vector{1, 0.1}
-		i, pt = 0, poly.FarthestHullPoint(dir)
-		if pt.X != poly.Vertices[i].X || pt.Y != poly.Vertices[i].Y {
-			t.Error(i, pt, poly.Vertices[i])
-			return false
-		}
-		dir = geom.Vector{0.1, 1}
-		i, pt = 4, poly.FarthestHullPoint(dir)
-		if pt.X != poly.Vertices[i].X || pt.Y != poly.Vertices[i].Y {
-			t.Error(i, pt, poly.Vertices[i])
-			return false
-		}
-		dir = geom.Vector{0.1, -1}
-		i, pt = 1, poly.FarthestHullPoint(dir)
-		if pt.X != poly.Vertices[i].X || pt.Y != poly.Vertices[i].Y {
-			t.Error(i, pt, poly.Vertices[i])
-			return false
-		}
-		dir = geom.Vector{-0.1, -1}
-		i, pt = 2, poly.FarthestHullPoint(dir)
-		if pt.X != poly.Vertices[i].X || pt.Y != poly.Vertices[i].Y {
-			t.Error(i, pt, poly.Vertices[i])
-			return false
-		}
+			pt = poly.FarthestHullPoint(geom.Vector{1, 0.1})
+			So(pt, ShouldResemble, poly.Vertices[0])
 
-		return true
-	})
-	It(t, "check farthest hull points triangle", func() bool {
-		var dir, pt geom.Vector
-		var i int
+			pt = poly.FarthestHullPoint(geom.Vector{0.1, 1})
+			So(pt, ShouldResemble, poly.Vertices[4])
 
-		dir = geom.Vector{1, -0.1}
-		i, pt = 1, triangle.FarthestHullPoint(dir)
-		if pt.X != triangle.Vertices[i].X || pt.Y != triangle.Vertices[i].Y {
-			t.Error(i, pt, triangle.Vertices[i])
-			return false
-		}
-		dir = geom.Vector{1, 1}
-		i, pt = 0, triangle.FarthestHullPoint(dir)
-		if pt.X != triangle.Vertices[i].X || pt.Y != triangle.Vertices[i].Y {
-			t.Error(i, pt, triangle.Vertices[i])
-			return false
-		}
-		dir = geom.Vector{-1, -0.1}
-		i, pt = 2, triangle.FarthestHullPoint(dir)
-		if pt.X != triangle.Vertices[i].X || pt.Y != triangle.Vertices[i].Y {
-			t.Error(i, pt, triangle.Vertices[i])
-			return false
-		}
+			pt = poly.FarthestHullPoint(geom.Vector{0.1, -1})
+			So(pt, ShouldResemble, poly.Vertices[1])
 
-		return true
-	})
-	It(t, "check aabb", func() bool {
-		aabb := poly.AABB(0)
-		if aabb.HW != 1 || aabb.HH != 1.5/2.0 {
-			t.Error(1, 1.5/2.0, aabb)
-			return false
-		}
-		return true
-	})
-	It(t, "sould return correct vertices for FarthestHullPoint", func() bool {
-		var v geom.Vector
-		var i int
+			pt = poly.FarthestHullPoint(geom.Vector{-0.1, -1})
+			So(pt, ShouldResemble, poly.Vertices[2])
+		})
+		Convey("check farthest hull points triangle", func() {
+			var pt geom.Vector
 
-		i, v = 1, shape.FarthestHullPoint(geom.Vector{1, 0})
-		if !v.Equals(shape.Vertices[i]) {
-			t.Error(i, v, shape.Vertices[i])
-			return false
-		}
-		i, v = 0, shape.FarthestHullPoint(geom.Vector{-1, 0})
-		if !v.Equals(shape.Vertices[i]) {
-			t.Error(i, v, shape.Vertices[i])
-			return false
-		}
-		i, v = 1, shape.FarthestHullPoint(geom.Vector{0, 1})
-		if !v.Equals(shape.Vertices[i]) {
-			t.Error(i, v, shape.Vertices[i])
-			return false
-		}
-		i, v = 2, shape.FarthestHullPoint(geom.Vector{0, -1})
-		if !v.Equals(shape.Vertices[i]) {
-			t.Error(i, v, shape.Vertices[i])
-			return false
-		}
+			pt = triangle.FarthestHullPoint(geom.Vector{1, -0.1})
+			So(pt, ShouldResemble, triangle.Vertices[1])
 
-		return true
+			pt = triangle.FarthestHullPoint(geom.Vector{1, 1})
+			So(pt, ShouldResemble, triangle.Vertices[0])
+
+			pt = triangle.FarthestHullPoint(geom.Vector{-1, -0.1})
+			So(pt, ShouldResemble, triangle.Vertices[2])
+		})
+		Convey("check aabb", func() {
+			aabb := poly.AABB(0)
+			So(aabb.HW, ShouldEqual, 1)
+			So(aabb.HH, ShouldEqual, 1.5/2.0)
+		})
+		Convey("sould return correct vertices for FarthestHullPoint", func() {
+			var v geom.Vector
+
+			v = shape.FarthestHullPoint(geom.Vector{1, 0})
+			So(v, ShouldResemble, shape.Vertices[1])
+
+			v = shape.FarthestHullPoint(geom.Vector{-1, 0})
+			So(v, ShouldResemble, shape.Vertices[0])
+
+			v = shape.FarthestHullPoint(geom.Vector{0, 1})
+			So(v, ShouldResemble, shape.Vertices[1])
+
+			v = shape.FarthestHullPoint(geom.Vector{0, -1})
+			So(v, ShouldResemble, shape.Vertices[2])
+		})
 	})
 }
