@@ -1,5 +1,11 @@
 package util
 
+type EventTarget interface {
+	On(name string, fn *func(interface{}))
+	Off(name string, fn *func(interface{})) bool
+	Emit(name string, data interface{})
+}
+
 type PubSub struct {
 	callbacks map[string][]*func(interface{})
 }
@@ -11,9 +17,9 @@ func NewPubSub() PubSub {
 func (ps *PubSub) On(name string, fn *func(interface{})) {
 	ps.Off(name, fn)
 
-	if _, ok := ps.callbacks[name]; !ok {
+	/*if _, ok := ps.callbacks[name]; !ok {
 		ps.callbacks[name] = []*func(interface{}){}
-	}
+	}*/
 
 	ps.callbacks[name] = append(ps.callbacks[name], fn)
 }
