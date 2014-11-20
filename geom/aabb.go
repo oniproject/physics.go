@@ -1,7 +1,6 @@
-package physics
+package geom
 
 import (
-	"github.com/oniproject/physics.go/geom"
 	"math"
 )
 
@@ -30,7 +29,7 @@ func NewAABB_byMM(minX, minY, maxX, maxY float64) (aabb AABB) {
 /** - pt1 (Vectorish): The first corner
  * - pt2 (Vectorish): The opposite corner
  */
-func NewAABB_byPoints(pt1, pt2 geom.Vector) (aabb AABB) {
+func NewAABB_byPoints(pt1, pt2 Vector) (aabb AABB) {
 	return NewAABB_byMM(pt1.X, pt1.Y, pt2.X, pt2.Y)
 }
 
@@ -38,7 +37,7 @@ func NewAABB_byWH(w, h float64) (aabb AABB) {
 	aabb.HW, aabb.HH = w*0.5, h*0.5
 	return
 }
-func NewAABB_byCenter(w, h float64, c geom.Vector) (aabb AABB) {
+func NewAABB_byCenter(w, h float64, c Vector) (aabb AABB) {
 	aabb.X, aabb.Y = c.X, c.Y
 	aabb.HW, aabb.HH = w*0.5, h*0.5
 	return
@@ -52,7 +51,7 @@ func NewAABB_byCenter(w, h float64, c geom.Vector) (aabb AABB) {
  *
  * Check if a point is inside an aabb.
  **/
-func AABBcontains(aabb AABB, pt geom.Vector) bool {
+func AABBcontains(aabb AABB, pt Vector) bool {
 	return (pt.X > (aabb.X - aabb.HW)) &&
 		(pt.X < (aabb.X + aabb.HW)) &&
 		(pt.Y > (aabb.Y - aabb.HH)) &&

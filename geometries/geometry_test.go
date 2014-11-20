@@ -1,4 +1,4 @@
-package physics
+package geometries
 
 import (
 	"github.com/oniproject/physics.go/geom"

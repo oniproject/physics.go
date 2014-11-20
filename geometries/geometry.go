@@ -1,4 +1,4 @@
-package physics
+package geometries
 
 import (
 	"github.com/oniproject/physics.go/geom"
@@ -8,7 +8,7 @@ import (
 type Geometry interface {
 	//Init(Options)
 	//Options() Options
-	AABB(angle float64) AABB
+	AABB(angle float64) geom.AABB
 	FarthestCorePoint(dir geom.Vector, margin float64) geom.Vector
 	FarthestHullPoint(dir geom.Vector) geom.Vector
 }

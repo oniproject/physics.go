@@ -2,7 +2,6 @@ package geometries
 
 import (
 	"errors"
-	"github.com/oniproject/physics.go"
 	"github.com/oniproject/physics.go/geom"
 )
 
@@ -11,7 +10,7 @@ var ERROR_NOT_CONVEX = errors.New("Error: The vertices specified do not mathc th
 type ConvexPolygon struct {
 	Vertices []geom.Vector
 	area     float64
-	aabb     *physics.AABB
+	aabb     *geom.AABB
 }
 
 func NewConvexPolygon(hull []geom.Vector) (cp *ConvexPolygon) {
@@ -21,29 +20,29 @@ func NewConvexPolygon(hull []geom.Vector) (cp *ConvexPolygon) {
 }
 
 func (this *ConvexPolygon) setVertices(hull []geom.Vector) {
-	if !physics.IsPolygonConvex(hull) {
+	if !IsPolygonConvex(hull) {
 		panic(ERROR_NOT_CONVEX)
 	}
 
-	center := physics.PolygonCentroid(hull).Times(-1)
-	trans := physics.NewTransform(center, 0, geom.Vector{})
+	center := PolygonCentroid(hull).Times(-1)
+	trans := geom.NewTransform(center, 0, geom.Vector{})
 
 	this.Vertices = []geom.Vector{}
 	for _, vert := range hull {
 		this.Vertices = append(this.Vertices, trans.Translate(vert))
 	}
 
-	this.area = physics.PolygonArea(this.Vertices)
+	this.area = PolygonArea(this.Vertices)
 
 	this.aabb = nil
 }
 
-func (this *ConvexPolygon) AABB(angle float64) physics.AABB {
+func (this *ConvexPolygon) AABB(angle float64) geom.AABB {
 	if angle == 0 && this.aabb != nil {
 		return *this.aabb
 	}
 
-	trans := physics.NewTransformAngle(angle)
+	trans := geom.NewTransformAngle(angle)
 
 	xaxis := trans.RotateInv(geom.Vector{1, 0})
 	yaxis := trans.RotateInv(geom.Vector{0, 1})
@@ -53,7 +52,7 @@ func (this *ConvexPolygon) AABB(angle float64) physics.AABB {
 	ymax := this.FarthestHullPoint(yaxis).Proj(yaxis)
 	ymin := this.FarthestHullPoint(yaxis.Times(-1)).Proj(yaxis)
 
-	aabb := physics.NewAABB_byMM(xmin, ymin, xmax, ymax)
+	aabb := geom.NewAABB_byMM(xmin, ymin, xmax, ymax)
 
 	if angle == 0 {
 		this.aabb = &aabb

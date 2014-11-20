@@ -1,7 +1,6 @@
 package geometries
 
 import (
-	"github.com/oniproject/physics.go"
 	"github.com/oniproject/physics.go/geom"
 )
 
@@ -9,18 +8,18 @@ type Rectangle struct {
 	Width, Height float64
 }
 
-func NewRectangle(w, h float64) physics.Geometry {
+func NewRectangle(w, h float64) Geometry {
 	return &Rectangle{w, h}
 }
 
-func (this *Rectangle) AABB(angle float64) physics.AABB {
+func (this *Rectangle) AABB(angle float64) geom.AABB {
 	panic("not implemented")
 
 	if angle == 0 {
-		return physics.NewAABB_byWH(this.Width, this.Height)
+		return geom.NewAABB_byWH(this.Width, this.Height)
 	}
 
-	trans := physics.NewTransformAngle(angle)
+	trans := geom.NewTransformAngle(angle)
 
 	xaxis := trans.RotateInv(geom.Vector{1, 0})
 	yaxis := trans.RotateInv(geom.Vector{0, 1})
@@ -29,7 +28,7 @@ func (this *Rectangle) AABB(angle float64) physics.AABB {
 	ymax := this.FarthestHullPoint(yaxis).Proj(yaxis)
 	ymin := this.FarthestHullPoint(yaxis.Times(-1)).Proj(yaxis)
 
-	return physics.NewAABB_byMM(xmin, ymin, xmax, ymax)
+	return geom.NewAABB_byMM(xmin, ymin, xmax, ymax)
 }
 
 func (this *Rectangle) FarthestHullPoint(dir geom.Vector) geom.Vector {

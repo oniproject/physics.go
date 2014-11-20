@@ -1,18 +1,17 @@
 package geometries
 
 import (
-	"github.com/oniproject/physics.go"
 	"github.com/oniproject/physics.go/geom"
 )
 
 type Point struct{}
 
-func NewPoint() physics.Geometry {
+func NewPoint() Geometry {
 	return &Point{}
 }
 
-func (this *Point) AABB(angle float64) physics.AABB {
-	return physics.AABB{}
+func (this *Point) AABB(angle float64) geom.AABB {
+	return geom.AABB{}
 }
 func (this *Point) FarthestHullPoint(dir geom.Vector) geom.Vector {
 	// not implemented.

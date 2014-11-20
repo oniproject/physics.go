@@ -1,7 +1,6 @@
-package physics
+package geom
 
 import (
-	"github.com/oniproject/physics.go/geom"
 	"testing"
 )
 
@@ -43,12 +42,12 @@ func Test_AABB(t *testing.T) {
 	})
 
 	It(t, "should initialize provided a width/height and point", func() bool {
-		aabb := NewAABB_byCenter(4, 5, geom.Vector{X: 20, Y: 9})
+		aabb := NewAABB_byCenter(4, 5, Vector{X: 20, Y: 9})
 		return matches(t, aabb, AABB{X: 20, Y: 9, HW: 2, HH: 2.5})
 	})
 
 	It(t, "should initialize provided two points", func() bool {
-		aabb := NewAABB_byPoints(geom.Vector{X: 13, Y: 21}, geom.Vector{X: 20, Y: 9})
+		aabb := NewAABB_byPoints(Vector{X: 13, Y: 21}, Vector{X: 20, Y: 9})
 		return matches(t, aabb, AABB{X: 16.5, Y: 15, HW: 3.5, HH: 6})
 	})
 
