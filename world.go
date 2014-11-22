@@ -78,16 +78,10 @@ func NewWorldImprovedEuler() (w World) {
 	return
 }
 
-type Meta struct {
-	FPS, IPF        int
-	InterpolateTime time.Duration
-}
-
 type world struct {
 	maxIPF int
-	//integrator string
 
-	meta Meta
+	meta renderers.Meta
 
 	bodies     []bodies.Body
 	behaviors  []behaviors.Behavior
@@ -199,15 +193,9 @@ func (w *world) Itertate(dt time.Duration) {
 	w.Emit("integrate:positions", IntegrateEvent{w.bodies, dt})
 }
 
-type RenderEvent struct {
-	Bodies   []bodies.Body
-	Meta     Meta
-	Renderer renderers.Renderer
-}
-
 func (w *world) Render() {
 	w.renderer.Render(w.bodies, w.meta)
-	w.Emit("render", RenderEvent{w.bodies, w.meta, w.renderer})
+	w.Emit("render", renderers.RenderEvent{w.bodies, w.meta, w.renderer})
 }
 
 func (w *world) IsPaused() bool { return w.paused }
