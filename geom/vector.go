@@ -142,3 +142,11 @@ func (p Vector) Proj(v Vector) float64 {
 	dot := DotProduct(p, v)
 	return dot / v.Magnitude()
 }
+func (p Vector) Perp(is bool) (v Vector) {
+	if is {
+		v.X, v.Y = p.Y, -p.X
+	} else {
+		v.X, v.Y = -p.Y, p.X
+	}
+	return
+}

@@ -76,6 +76,8 @@ func (p *Point) SetVelocity(x, y float64) { p.state.Vel = geom.Vector{x, y} }
 func (p *Point) State() *BodyState { return p.state }
 func (p *Point) UID() int64        { return p.uid }
 
+func (p *Point) MOI() float64 { return p.moi }
+
 func (p *Point) Accelerate(acc geom.Vector) {
 	if p.treatment == TREATMENT_DYNAMIC {
 		p.state.Acc = p.state.Acc.Plus(acc)

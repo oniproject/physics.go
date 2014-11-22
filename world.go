@@ -11,14 +11,15 @@ import (
 
 const (
 	//DefaultTimestep   = 1000.0 / 120
-	DefaultTimestep   = time.Second / 120
+	///DefaultTimestep   = time.Second / 120
+	DefaultTimestep   = (time.Second / 120) * 1000
 	DefaultMaxIPF     = 16
 	DefaultIntegrator = "verlet"
 )
 
 type World interface {
-	Add(thing interface{})
-	Remove(thing interface{})
+	Add(things ...interface{})
+	Remove(things ...interface{})
 
 	AddBehavior(behaviors.Behavior)
 	AddBody(bodies.Body)
@@ -68,6 +69,9 @@ func NewWorldImprovedEuler() (w World) {
 		//timestep: DefaultTimestep,
 		maxIPF: DefaultMaxIPF,
 		PubSub: util.NewPubSub(),
+
+		warp: time.Second * 1000,
+		//warp: time.Second,
 	}
 	w.SetIntegrator(integrators.NewImprovedEuler())
 	w.SetTimeStep(DefaultTimestep)
@@ -244,14 +248,15 @@ func (w *world) Step(now time.Time) {
 	animDiff := now.Sub(w.animTime)
 
 	animMaxJump := time.Duration(float64(w.maxJump) * invWarp)
+
 	// if the time difference is to big... ajust
 	if animDiff > animMaxJump {
 		w.animTime = now.Add(-animMaxJump)
 		animDiff = animMaxJump
 	}
 
-	// the "world" time between this step and the last. Adjust for wrap
-	worldDiff := animDiff * w.warp
+	// the "world" time between this step and the last. Adjust for warp
+	worldDiff := time.Duration(float64(animDiff) * w.warp.Seconds())
 
 	// the target time for the world time to step to
 	target := w.time.Add(worldDiff - w.dt)

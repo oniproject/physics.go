@@ -55,4 +55,6 @@ type Body interface {
 
 	SetPosition(float64, float64)
 	SetVelocity(float64, float64)
+
+	MOI() float64
 }

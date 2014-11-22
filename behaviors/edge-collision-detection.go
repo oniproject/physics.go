@@ -3,127 +3,144 @@ package behaviors
 import (
 	"github.com/oniproject/physics.go/bodies"
 	"github.com/oniproject/physics.go/geom"
-	"github.com/oniproject/physics.go/util"
+	"log"
 )
-
-type Collision struct {
-	BodyA, BodyB   bodies.Body
-	Overlap        float64
-	Norm, MTV, Pos geom.Vector
-}
 
 type EdgeCollisionDetecton struct {
 	// 1   0.99
-	Cof, Restitution float64
-	f                *func(interface{})
+	Channel          string
+	cof, restitution float64
 
-	edges geom.AABB
-	body  bodies.Body
-	world util.EventTarget
+	min, max geom.Vector
+
+	body bodies.Body
+
+	targets   []bodies.Body
+	checkAllC func(interface{})
+	world     World
 }
 
-func (this *EdgeCollisionDetecton) ApplyTo([]bodies.Body) {
-	panic("not implemented")
+func NewEdgeCollisionDetection(edges geom.AABB, cof, restitution float64) Behavior {
+	b := &EdgeCollisionDetecton{
+		Channel:     "collisions:detected",
+		cof:         cof,
+		restitution: restitution,
+	}
+	b.SetAABB(edges)
+	b.checkAllC = func(interface{}) { b.checkAll() }
+	b.body = bodies.NewPoint()
+	b.body.SetRestitution(b.restitution)
+	b.body.SetCof(b.cof)
+	b.body.SetTreatment(bodies.TREATMENT_STATIC)
+	return b
 }
 
-//Behave(data XX)
-func (this *EdgeCollisionDetecton) Connect(world util.EventTarget) {
-	f := func(interface{}) { this.checkAll() }
-	this.f = &f
-	world.On("integrate:velocities", this.f)
+func (b *EdgeCollisionDetecton) ApplyTo(bodies []bodies.Body) { b.targets = bodies }
+func (b *EdgeCollisionDetecton) Targets() []bodies.Body {
+	if len(b.targets) == 0 {
+		return b.world.Bodies()
+	}
+	return b.targets
 }
-func (this *EdgeCollisionDetecton) Disconnect(world util.EventTarget) {
-	world.Off("integrate:velocities", this.f)
+func (b *EdgeCollisionDetecton) SetWorld(world World) {
+	if b.world != nil {
+		// disconnect
+		world.Off("integrate:velocities", &b.checkAllC)
+	}
+	if world != nil {
+		// connect
+		world.On("integrate:velocities", &b.checkAllC)
+	}
+	b.world = world
 }
-func (this *EdgeCollisionDetecton) Targets() []bodies.Body {
-	panic("not implemented")
+
+func (this *EdgeCollisionDetecton) SetAABB(aabb geom.AABB) {
+	this.min = geom.Vector{
+		X: aabb.X - aabb.HW,
+		Y: aabb.Y - aabb.HH,
+	}
+	this.max = geom.Vector{
+		X: aabb.X + aabb.HW,
+		Y: aabb.Y + aabb.HH,
+	}
 }
 
 func (this *EdgeCollisionDetecton) checkAll() {
 	collisions := []Collision{}
 	for _, body := range this.Targets() {
 		if body.Treatment() == bodies.TREATMENT_DYNAMIC {
-			ret := checkEdgeCollide(body, this.edges, this.body)
+			ret := checkEdgeCollide(body, this.min, this.max, this.body)
 			collisions = append(collisions, ret...)
 		}
 	}
 	if len(collisions) != 0 {
-		//this.world.Emit(this.options.cannel
-		this.world.Emit("collisions:detected", collisions)
+		log.Print(this.Channel, collisions)
+		this.world.Emit(this.Channel, collisions)
 	}
 }
 
-//Init(options Options)
-//Options() Options
-func (this *EdgeCollisionDetecton) SetWorld(world util.EventTarget) {
-	panic("not implemented")
+func checkEdgeCollide(body bodies.Body, min, max geom.Vector, dummy bodies.Body) []Collision {
+	return checkGeneral(body, min, max, dummy)
 }
 
-func checkEdgeCollide(body bodies.Body, bounds geom.AABB, dummy bodies.Body) []Collision {
-	return checkGeneral(body, bounds, dummy)
-}
-
-func checkGeneral(body bodies.Body, bounds geom.AABB, dummy bodies.Body) []Collision {
+func checkGeneral(body bodies.Body, min, max geom.Vector, dummy bodies.Body) []Collision {
 	collisions := []Collision{}
 
-	/*
+	aabb := body.AABB(0)
+	trans := geom.NewTransformAngle(body.State().Angular.Pos)
+	var overlap float64
 
-		aabb := body.AABB(0)
-		var overlap float64
+	// right
+	overlap = (aabb.X + aabb.HW) - max.X
+	if overlap >= 0 {
+		dir := trans.RotateInv(geom.Vector{X: 1})
+		collisions = append(collisions, Collision{
+			BodyA: body, BodyB: dummy,
+			Overlap: overlap,
+			Norm:    geom.Vector{X: 1},
+			MTV:     geom.Vector{X: overlap},
+			Pos:     trans.Rotate(body.Geometry().FarthestHullPoint(dir)),
+		})
+	}
 
-			// right
-			overlap = (aabb.X + aabb.HW) - bounds.MaxX
-			if overlap >= 0 {
-				dir.set(1, 0).rotateInv(trans.SetRotation(body.State().Angular.Pos))
-				collisions = append(collisions, &Collision{
-					BodyA: body, BodyB: dummy,
-					Overlap: overlap,
-					Norm:    geom.Vector{X: 1},
-					MTV:     geom.Vector{X: overlap},
-					Pos:     body.Geometry().FarthestHullPoint(dir).Rotate(trans).Values(),
-				})
-			}
+	// bottom
+	overlap = (aabb.Y + aabb.HH) - max.Y
+	if overlap >= 0 {
+		dir := trans.RotateInv(geom.Vector{Y: 1})
+		collisions = append(collisions, Collision{
+			BodyA: body, BodyB: dummy,
+			Overlap: overlap,
+			Norm:    geom.Vector{Y: 1},
+			MTV:     geom.Vector{Y: overlap},
+			Pos:     trans.Rotate(body.Geometry().FarthestHullPoint(dir)),
+		})
+	}
 
-			// bottom
-			overlap = (aabb.Y + aabb.HH) - bounds.MaxY
-			if overlap >= 0 {
-				dir.set(0, 1).rotateInv(trans.SetRotation(body.State().Angular.Pos))
-				collisions = append(collisions, &Collision{
-					BodyA: body, BodyB: dummy,
-					Overlap: overlap,
-					Norm:    geom.Vector{Y: 1},
-					MTV:     geom.Vector{Y: overlap},
-					Pos:     body.Geometry().FarthestHullPoint(dir).Rotate(trans).Values(),
-				})
-			}
+	// left
+	overlap = min.X - (aabb.X - aabb.HW)
+	if overlap >= 0 {
+		dir := trans.RotateInv(geom.Vector{X: -1})
+		collisions = append(collisions, Collision{
+			BodyA: body, BodyB: dummy,
+			Overlap: overlap,
+			Norm:    geom.Vector{X: -1},
+			MTV:     geom.Vector{X: -overlap},
+			Pos:     trans.Rotate(body.Geometry().FarthestHullPoint(dir)),
+		})
+	}
 
-			// left
-			overlap = bounds.MinX - (aabb.X - aabb.HW)
-			if overlap >= 0 {
-				dir.set(-1, 0).rotateInv(trans.SetRotation(body.State().Angular.Pos))
-				collisions = append(collisions, &Collision{
-					BodyA: body, BodyB: dummy,
-					Overlap: overlap,
-					Norm:    geom.Vector{X: -1},
-					MTV:     geom.Vector{X: -overlap},
-					Pos:     body.Geometry().FarthestHullPoint(dir).Rotate(trans).Values(),
-				})
-			}
-
-			// top
-			overlap = bounds.MinY - (aabb.Y - aabb.HY)
-			if overlap >= 0 {
-				dir.set(0, -1).rotateInv(trans.SetRotation(body.State().Angular.Pos))
-				collisions = append(collisions, &Collision{
-					BodyA: body, BodyB: dummy,
-					Overlap: overlap,
-					Norm:    geom.Vector{Y: -1},
-					MTV:     geom.Vector{Y: -overlap},
-					Pos:     body.Geometry().FarthestHullPoint(dir).Rotate(trans).Values(),
-				})
-			}
-
-	*/
+	// top
+	overlap = min.Y - (aabb.Y - aabb.HH)
+	if overlap >= 0 {
+		dir := trans.RotateInv(geom.Vector{Y: -1})
+		collisions = append(collisions, Collision{
+			BodyA: body, BodyB: dummy,
+			Overlap: overlap,
+			Norm:    geom.Vector{Y: -1},
+			MTV:     geom.Vector{Y: -overlap},
+			Pos:     trans.Rotate(body.Geometry().FarthestHullPoint(dir)),
+		})
+	}
 
 	return collisions
 }

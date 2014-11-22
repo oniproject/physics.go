@@ -3,7 +3,6 @@ package integrators
 import (
 	"github.com/oniproject/physics.go/bodies"
 	"github.com/oniproject/physics.go/geom"
-	"github.com/oniproject/physics.go/util"
 	"time"
 )
 
@@ -15,9 +14,9 @@ func NewImprovedEuler() Integrator {
 	return &ImprovedEuler{}
 }
 
-func (this *ImprovedEuler) SetWorld(world util.EventTarget) {}
+func (this *ImprovedEuler) SetWorld(world World) {}
 
-func (this *ImprovedEuler) IntegratePositions(things []bodies.Body, dt time.Duration) {
+func (this *ImprovedEuler) IntegrateVelocities(things []bodies.Body, dt time.Duration) {
 	drag := 1 - this.Drag
 
 	for _, body := range things {
@@ -57,7 +56,7 @@ func (this *ImprovedEuler) IntegratePositions(things []bodies.Body, dt time.Dura
 		state.Angular.Acc = 0
 	}
 }
-func (this *ImprovedEuler) IntegrateVelocities(things []bodies.Body, dt time.Duration) {
+func (this *ImprovedEuler) IntegratePositions(things []bodies.Body, dt time.Duration) {
 	halfdtdt := 0.5 * dt.Seconds() * dt.Seconds()
 
 	for _, body := range things {
@@ -70,9 +69,10 @@ func (this *ImprovedEuler) IntegrateVelocities(things []bodies.Body, dt time.Dur
 		state.Old.Pos = state.Pos
 		vel := state.Old.Vel
 		state.Pos = state.Pos.Plus(vel.Times(dt.Seconds())).Plus(state.Old.Acc.Times(halfdtdt))
+		state.Old.Acc = geom.Vector{}
 
 		state.Old.Angular.Pos = state.Angular.Pos
-		state.Angular.Pos += state.Old.Angular.Vel*float64(dt) + state.Old.Angular.Acc*halfdtdt
+		state.Angular.Pos += state.Old.Angular.Vel*float64(dt.Seconds()) + state.Old.Angular.Acc*halfdtdt
 		state.Old.Angular.Acc = 0
 	}
 }

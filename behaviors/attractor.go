@@ -27,25 +27,24 @@ func NewAttractor() Behavior {
 		Min:      10,
 	}
 
-	b.behaveC = func(interface{}) { b.behave() }
+	b.behaveC = b.behave //func(interface{}) { b.behave() }
 
 	return b
 }
 
 func (b *Attractor) ApplyTo(bodies []bodies.Body) { b.targets = bodies }
 func (b *Attractor) Targets() []bodies.Body       { return b.targets }
-
 func (b *Attractor) SetWorld(world World) {
 	if b.world != nil {
 		world.On("integrate:positions", &b.behaveC)
-		b.world = nil
 	}
 	if world != nil {
 		world.Off("integrate:positions", &b.behaveC)
 	}
+	b.world = world
 }
 
-func (b *Attractor) behave() {
+func (b *Attractor) behave(interface{}) {
 	for _, body := range b.Targets() {
 		acc := b.Pos.Minus(body.State().Pos)
 		norm := acc.Magnitude()

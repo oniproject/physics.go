@@ -1,70 +1,56 @@
 package behaviors
 
 import (
-	//"errors"
 	"github.com/oniproject/physics.go/bodies"
 	"github.com/oniproject/physics.go/geom"
+	"log"
+	"sort"
 )
 
-const maxDof = 2
+const (
+	maxDof        = 2
+	collisionFlag = 8 // 16 if 3D
+)
 
 var dof = geom.Vector{0, 1}
-var uid int64 = 0
+var uid int = 0
 
-func getUniqueId() int64 {
+func getUniqueId() int {
 	uid++
 	return uid
 }
 
-func pairHash(id1, id2 int64) int64 {
-	switch {
-	case id1 > id2:
-		return id1<<16 | id2&0xFFFF
-	case id1 < id2:
-		return id2<<16 | id1&0xFFFF
-	default:
-		return -1
-	}
-
-}
-
-type intr struct {
-	t       bool
-	val     geom.Vector
-	tracker *tracker
-}
-type interval struct {
-	min intr
-	max intr
-}
 type tracker struct {
-	id       int64
+	id       int
 	body     bodies.Body
-	interval interval
+	max, min geom.Vector
 }
-
 type pair struct {
 	bodyA, bodyB bodies.Body
-	flag         uint
+	axis         [maxDof]bool
 }
 
 type SweepPrune struct {
-	//encounters []...
-	//candidates []...
-	tracked      []tracker
-	pairs        map[int64]pair
-	intervalList [][]intr
+	Channel string
+	tracked [][]*tracker
 
 	trackBodyC, untrackBodyC, sweepC func(interface{})
+
+	axis int
 
 	world World
 }
 
 func NewSweepPrune() Behavior {
-	b := &SweepPrune{}
-	//b.trackBodyC = func(data interface{}) { b.trackBody(data.(bodies.Body)) }
-	//b.untrackBodyC = func(data interface{}) { b.untrackBody(data.(bodies.Body)) }
-	//b.sweepC = func(data interface{}) { b.sweep() }
+	b := &SweepPrune{
+		Channel: "collisions:candidates",
+	}
+	b.trackBodyC = func(data interface{}) { b.trackBody(data.(bodies.Body)) }
+	b.untrackBodyC = func(data interface{}) { b.untrackBody(data.(bodies.Body)) }
+	b.sweepC = func(data interface{}) { b.sweep() }
+
+	b.clear()
+
 	return b
 }
 
@@ -72,178 +58,137 @@ func (b *SweepPrune) ApplyTo(bodies []bodies.Body) {}
 func (b *SweepPrune) Targets() []bodies.Body       { return nil }
 func (b *SweepPrune) SetWorld(world World) {
 	if b.world != nil {
-		b.disconnect(b.world)
-		b.world = nil
+		// disconnect
+		world.Off("add:body", &b.trackBodyC)
+		world.Off("remove:body", &b.untrackBodyC)
+		world.Off("integrate:velocities", &b.sweepC)
+		b.clear()
 	}
 	if world != nil {
-		b.connect(b.world)
+		// connect
+		world.On("add:body", &b.trackBodyC)
+		world.On("remove:body", &b.untrackBodyC)
+		world.On("integrate:velocities", &b.sweepC)
 	}
-}
-
-func (b *SweepPrune) connect(world World) {
-	world.On("add:body", &b.trackBodyC)
-	world.On("remove:body", &b.untrackBodyC)
-	world.On("integrate:velocities", &b.sweepC)
-
-	//for _, body := range world.Bodies() {
-	//b.trackBody(body)
-	//}
-}
-
-func (b *SweepPrune) disconnect(world World) {
-	world.Off("add:body", &b.trackBodyC)
-	world.Off("remove:body", &b.untrackBodyC)
-	world.Off("integrate:velocities", &b.sweepC)
-	b.clear()
+	b.world = world
 }
 
 func (b *SweepPrune) clear() {
-	b.tracked = []tracker{}
-	b.pairs = make(map[int64]pair)
-	b.intervalList = [][]intr{}
-
+	b.tracked = [][]*tracker{}
 	for xyz := 0; xyz < maxDof; xyz++ {
-		b.intervalList = append(b.intervalList, []intr{})
+		b.tracked = append(b.tracked, []*tracker{})
 	}
 }
 
-/*func (b *SweepPrune) broadPhase() {
-	b.updateIntervals()
-	b.sortIntervals()
-	return b.checkOverlaps()
-}
-
-func (b *SweepPrune) sortIntervals() {
-	// TODO
-	for xyz := 0; xyz < maxDof; xyz++ {
-		list := b.intervalList[xyz]
-		axis := xyz
-
-		for i, bound := range list {
-			hole := i
-
-			left := list[hole-1]
-
-			var boundVal, leftVal float64
-
-			switch axis {
-			case 0:
-				boundVal = bound.val.X
-				leftVal = left.val.X
-			case 1:
-				boundVal = bound.val.Y
-				leftVal = left.val.Y
-			}
-
-			for hole > 0 &&
-				(leftVal > boundVal ||
-					leftVal == boundVal && (left.t && !bound.t)) {
-				list[hole] = left
-				hole--
-				left = list[hole-1]
-				switch axis {
-				case 0:
-					leftVal = left.val.X
-				case 1:
-					leftVal = left.val.Y
-				}
-			}
-
-			list[hole] = bound
-		}
-	}
-}
-
-func (b *SweepPrune) getPair(tr1, tr2 tracker, doCreate bool) (pair, error) {
-	// TODO
-
-	hash := pairHash(tr1.id, tr2.id)
-
-	if hash == -1 {
-		return pair{}, errors.New("fail hash")
-	}
-
-	if c, ok := b.pairs[hash]; !ok {
-		if !doCreate {
-			return c, errors.New("!doCreate")
-		}
-		c = pair{
-			bodyA: tr1.body,
-			bodyB: tr2.body,
-			flag:  1,
-		}
-		b.pairs[hash] = c
-		return c, nil
-	} else {
-		if doCreate {
-			c.flag = 1
-		}
-		return c, nil
-	}
-}
-
-func (b *SweepPrune) checkOverlaps() int {
-	// TODO
-
-}
-
-func (b *SweepPrune) updateIntervals() {
-	// TODO
-}
 func (b *SweepPrune) trackBody(body bodies.Body) {
 	// TODO
-	tracker := tracker{
+	tracker := &tracker{
 		id:   getUniqueId(),
 		body: body,
 	}
-	intr := interval{
-		min: intr{
-			t:       false, //min
-			tracker: &tracker,
-		},
-		max: intr{
-			t:       true, //max
-			tracker: &tracker,
-		},
-	}
-
-	tracker.interval = intr
-	b.tracked = append(b.tracked, tracker)
 
 	for xyz := 0; xyz < maxDof; xyz++ {
-		b.intervalList[xyz] = append(b.intervalList[xyz], intr.min, intr.max)
+		b.tracked[xyz] = append(b.tracked[xyz], tracker)
 	}
+
+	log.Println("trackBody", tracker, body)
 }
 
 func (b *SweepPrune) untrackBody(body bodies.Body) {
-	// TODO
-	for i, tracker := range b.tracked {
-		if tracker.body == body {
-			b.tracked = append(b.tracked[i:], b.tracked[:i+1]...)
-
-			for xyz := 0; xyz < maxDof; xyz++ {
-				count := 0
-				list := b.intervalList[xyz]
-
-			XX:
-				for j, minmax := range list {
-					if minmax == tracker.interval.min || minmax == tracker.interval.max {
-						list = append(list[j:], list[:j+1]...)
-						if count > 0 {
-							break XX
-						}
-						count++
-					}
-				}
+	for xyz := range b.tracked {
+		for i, tracker := range b.tracked[xyz] {
+			if tracker.body == body {
+				b.tracked[xyz] = append(b.tracked[xyz][i:], b.tracked[xyz][:i+1]...)
 			}
 		}
 	}
 }
 
 func (b *SweepPrune) sweep() {
-	// TODO
 	candidates := b.broadPhase()
 	if len(candidates) > 0 {
-		b.world.Emit("collisions:candidates", candidates)
+		b.world.Emit(b.Channel, candidates)
 	}
-}*/
+}
+
+func (b *SweepPrune) broadPhase() map[int]*pair {
+	for xyz := range b.tracked {
+		for _, tr := range b.tracked[xyz] {
+			aabb := tr.body.AABB(0)
+			span := geom.Vector{aabb.HW, aabb.HH}
+			pos := tr.body.State().Pos
+			tr.min = pos.Minus(span)
+			tr.max = pos.Plus(span)
+		}
+	}
+
+	for xyz := 0; xyz < maxDof; xyz++ {
+		list := b.tracked[xyz]
+		switch xyz {
+		case 0:
+			sort.Sort(byX(list))
+		case 1:
+			sort.Sort(byY(list))
+		}
+		b.tracked[xyz] = list
+	}
+	return b.checkOverlaps()
+}
+
+type byX []*tracker
+
+func (a byX) Len() int      { return len(a) }
+func (a byX) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byX) Less(i, j int) bool {
+	//first, second := a[i].value().X, a[j].value().X
+	first, second := a[i].min.X, a[j].min.X
+	return first < second //|| first == second && !a[i].isMax && a[j].isMax
+}
+
+type byY []*tracker
+
+func (a byY) Len() int      { return len(a) }
+func (a byY) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byY) Less(i, j int) bool {
+	first, second := a[i].min.Y, a[j].min.Y
+	return first < second //|| first == second && !a[i].isMax && a[j].isMax
+}
+
+func (b *SweepPrune) checkOverlaps() map[int]*pair {
+	candidates := make(map[int]*pair)
+
+	for axis, list := range b.tracked {
+		//axis, list := b.axis, b.tracked[b.axis]
+		for i, tr1 := range list {
+			for j := i + 1; j < len(list); j++ {
+				tr2 := list[j]
+
+				if tr1 == tr2 {
+					continue
+				}
+
+				switch axis {
+				case 0:
+					if tr2.min.X > tr1.max.X {
+						break
+					}
+				case 1:
+					if tr2.min.Y > tr1.max.Y {
+						break
+					}
+				}
+				hash := pairHash(tr1.id, tr2.id)
+
+				if hash == -1 {
+					log.Panic("fail hash", tr1.id, tr2.id)
+				}
+				candidates[hash] = &pair{
+					bodyA: tr1.body,
+					bodyB: tr2.body,
+				}
+			}
+		}
+	}
+
+	return candidates
+}

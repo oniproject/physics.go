@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+type World interface {
+	util.EventTarget
+}
+
 type Integrator interface {
 	//Init()
 	// Options() Options
@@ -14,7 +18,7 @@ type Integrator interface {
 	//Integrate(bodies []Body, dt time.Duration)
 	IntegratePositions(bodies []bodies.Body, dt time.Duration)
 	IntegrateVelocities(bodies []bodies.Body, dt time.Duration)
-	SetWorld(world util.EventTarget)
+	SetWorld(world World)
 }
 
 /*func IntegratorSetWorld(integrator Integrator, world World)                                {

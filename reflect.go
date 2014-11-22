@@ -21,24 +21,28 @@ func IsBody(i interface{}) bool       { return reflect.TypeOf(i).Implements(type
 func IsIntegrator(i interface{}) bool { return reflect.TypeOf(i).Implements(typeIntegrator) }
 func IsRenderer(i interface{}) bool   { return reflect.TypeOf(i).Implements(typeRenderer) }
 
-func (w *world) Add(i interface{}) {
-	switch {
-	case IsBehavior(i):
-		w.AddBehavior(i.(behaviors.Behavior))
-	case IsBody(i):
-		w.AddBody(i.(bodies.Body))
-	default:
-		panic("fail type")
+func (w *world) Add(things ...interface{}) {
+	for _, i := range things {
+		switch {
+		case IsBehavior(i):
+			w.AddBehavior(i.(behaviors.Behavior))
+		case IsBody(i):
+			w.AddBody(i.(bodies.Body))
+		default:
+			panic("fail type")
+		}
 	}
 }
 
-func (w *world) Remove(i interface{}) {
-	switch {
-	case IsBehavior(i):
-		w.RemoveBehavior(i.(behaviors.Behavior))
-	case IsBody(i):
-		w.RemoveBody(i.(bodies.Body))
-	default:
-		panic("fail type")
+func (w *world) Remove(things ...interface{}) {
+	for _, i := range things {
+		switch {
+		case IsBehavior(i):
+			w.RemoveBehavior(i.(behaviors.Behavior))
+		case IsBody(i):
+			w.RemoveBody(i.(bodies.Body))
+		default:
+			panic("fail type")
+		}
 	}
 }

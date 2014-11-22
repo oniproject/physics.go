@@ -35,6 +35,12 @@ func (t *Transform) Translate(vect Vector) Vector {
 	return vect.Plus(t.Vect)
 }
 
+func (t *Transform) Rotate(vect Vector) Vector {
+	return Vector{
+		X: (vect.X-t.Origin.X)*t.CosA - (vect.Y-t.Origin.Y)*t.SinA + t.Origin.X,
+		Y: (vect.X-t.Origin.X)*t.SinA + (vect.Y-t.Origin.Y)*t.CosA + t.Origin.Y,
+	}
+}
 func (t *Transform) RotateInv(vect Vector) Vector {
 	return Vector{
 		X: (vect.X-t.Origin.X)*t.CosA + (vect.Y-t.Origin.Y)*t.SinA + t.Origin.X,
