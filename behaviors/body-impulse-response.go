@@ -44,25 +44,27 @@ func (b *BodyImpulseResponse) respond(collisions []Collision) {
 	}
 }
 
-func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, n, point, mtv geom.Vector, contact bool) {
-	fixedA := bodyA.Treatment() == bodies.TREATMENT_STATIC || bodyA.Treatment() == bodies.TREATMENT_KINEMATIC
-	fixedB := bodyB.Treatment() == bodies.TREATMENT_STATIC || bodyB.Treatment() == bodies.TREATMENT_KINEMATIC
+func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, norm, point, mtv geom.Vector, contact bool) {
+	fixedA := bodyA.Treatment() != bodies.TREATMENT_DYNAMIC
+	fixedB := bodyB.Treatment() != bodies.TREATMENT_DYNAMIC
 
 	// do nothing if both are fixed
 	if fixedA && fixedB {
 		return
 	}
 
+	stateA, stateB := bodyA.State(), bodyB.State()
+
 	// extract bodies
 	switch {
 	case fixedA:
-		bodyB.State().Pos = bodyB.State().Pos.Plus(mtv)
+		stateB.Pos = stateB.Pos.Plus(mtv)
 	case fixedB:
-		bodyA.State().Pos = bodyA.State().Pos.Minus(mtv)
+		stateA.Pos = stateA.Pos.Minus(mtv)
 	default:
-		mtv := mtv.Times(0.5)
-		bodyA.State().Pos = bodyA.State().Pos.Minus(mtv)
-		bodyB.State().Pos = bodyB.State().Pos.Plus(mtv)
+		mtv = mtv.Times(0.5)
+		stateA.Pos = stateA.Pos.Minus(mtv)
+		stateB.Pos = stateB.Pos.Plus(mtv)
 	}
 
 	// inverse masses and moments of inertia.
@@ -93,34 +95,28 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, n, point, 
 	cof := bodyA.Cof() * bodyB.Cof()
 
 	// vector perpendicular to n
-	perp := n.Perp(false)
+	perp := norm.Perp(false)
 
 	// collision point from A's center
 	rA := point
 	// collision point from B's center
-	rB := point.Plus(bodyA.State().Pos).Minus(bodyB.State().Pos)
+	rB := point.Plus(stateA.Pos).Minus(stateB.Pos)
 
 	//tmp
 
-	angVelA := bodyA.State().Angular.Vel
-	angVelB := bodyB.State().Angular.Vel
+	angVelA := stateA.Angular.Vel
+	angVelB := stateB.Angular.Vel
 
 	// relative velocity towards B at collision point
-	vAB := bodyB.State().Vel.
+	vAB := stateB.Vel.
 		Plus(rB.Perp(false).Times(angVelB)).
-		Minus(bodyA.State().Vel).
+		Minus(stateA.Vel).
 		Minus(rA.Perp(false).Times(angVelA))
 
 	// break up components along normal and perp-normal directions
-	rAproj := rA.Proj(n)
-	rAreg := rA.Proj(perp)
-	rBproj := rB.Proj(n)
-	rBreg := rB.Proj(perp)
-	vproj := vAB.Proj(n)
-	vreg := vAB.Proj(perp)
-	// impulse
-	// sign
-	//max
+	rAproj, rAreg := rA.Proj(norm), rA.Proj(perp)
+	rBproj, rBreg := rB.Proj(norm), rB.Proj(perp)
+	vproj, vreg := vAB.Proj(norm), vAB.Proj(perp)
 
 	// if moving away from each other... dont' bother.
 	if vproj >= 0 {
@@ -132,16 +128,20 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, n, point, 
 	// apply impulse
 	switch {
 	case fixedA:
-		bodyB.State().Vel = bodyB.State().Vel.Plus(n.Times(impulse * invMassB))
-		bodyB.State().Angular.Vel -= impulse * invMoiB * rBreg
+		norm = norm.Times(impulse * invMassB)
+		stateB.Vel = stateB.Vel.Plus(norm)
+		stateB.Angular.Vel -= impulse * invMoiB * rBreg
 	case fixedB:
-		bodyA.State().Vel = bodyA.State().Vel.Minus(n.Times(impulse * invMassA))
-		bodyA.State().Angular.Vel += impulse * invMoiA * rAreg
+		norm = norm.Times(impulse * invMassA)
+		stateA.Vel = stateA.Vel.Minus(norm)
+		stateA.Angular.Vel += impulse * invMoiA * rAreg
 	default:
-		bodyB.State().Vel = bodyB.State().Vel.Plus(n.Times(impulse * invMassB))
-		bodyB.State().Angular.Vel -= impulse * invMoiB * rBreg
-		bodyA.State().Vel = bodyA.State().Vel.Minus(n.Times(invMassA * bodyB.Mass())) // XXX
-		bodyA.State().Angular.Vel += impulse * invMoiA * rAreg
+		norm = norm.Times(impulse * invMassB)
+		stateB.Vel = stateB.Vel.Plus(norm)
+		stateB.Angular.Vel -= impulse * invMoiB * rBreg
+		norm = norm.Times(invMassA * bodyB.Mass())
+		stateA.Vel = stateA.Vel.Minus(norm) // XXX
+		stateA.Angular.Vel += impulse * invMoiA * rAreg
 	}
 
 	//inContact := (impulse < 0.004)
@@ -184,16 +184,20 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, n, point, 
 		// apply frictional impulse
 		switch {
 		case fixedA:
-			bodyB.State().Vel = bodyB.State().Vel.Minus(perp.Times(impulse * invMassB))
-			bodyB.State().Angular.Vel -= impulse * invMoiB * rBproj
+			perp = perp.Times(impulse * invMassB)
+			stateB.Vel = stateB.Vel.Minus(perp)
+			stateB.Angular.Vel -= impulse * invMoiB * rBproj
 		case fixedB:
-			bodyA.State().Vel = bodyA.State().Vel.Plus(perp.Times(impulse * invMassA))
-			bodyA.State().Angular.Vel += impulse * invMoiA * rAproj
+			perp = perp.Times(impulse * invMassA)
+			stateA.Vel = stateA.Vel.Plus(perp)
+			stateA.Angular.Vel += impulse * invMoiA * rAproj
 		default:
-			bodyB.State().Vel = bodyB.State().Vel.Minus(perp.Times(impulse * invMassB))
-			bodyB.State().Angular.Vel -= impulse * invMoiB * rBproj
-			bodyA.State().Vel = bodyA.State().Vel.Plus(perp.Times(invMassA * bodyB.Mass())) // XXX
-			bodyA.State().Angular.Vel += impulse * invMoiA * rAproj
+			perp = perp.Times(impulse * invMassB)
+			stateB.Vel = stateB.Vel.Minus(perp)
+			stateB.Angular.Vel -= impulse * invMoiB * rBproj
+			perp = perp.Times(invMassA * bodyB.Mass())
+			stateA.Vel = stateA.Vel.Plus(perp) // XXX
+			stateA.Angular.Vel += impulse * invMoiA * rAproj
 		}
 	}
 }

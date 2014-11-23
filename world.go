@@ -6,15 +6,8 @@ import (
 	"github.com/oniproject/physics.go/integrators"
 	"github.com/oniproject/physics.go/renderers"
 	"github.com/oniproject/physics.go/util"
+	"log"
 	"time"
-)
-
-const (
-	//DefaultTimestep   = 1000.0 / 120
-	///DefaultTimestep   = time.Second / 120
-	DefaultTimestep   = (time.Second / 120) * 1000
-	DefaultMaxIPF     = 16
-	DefaultIntegrator = "verlet"
 )
 
 type World interface {
@@ -66,15 +59,14 @@ type World interface {
 }*/
 func NewWorldImprovedEuler() (w World) {
 	w = &world{
-		//timestep: DefaultTimestep,
-		maxIPF: DefaultMaxIPF,
+		maxIPF: 16,
 		PubSub: util.NewPubSub(),
 
-		warp: time.Second * 1000,
-		//warp: time.Second,
+		warp: 1,
 	}
 	w.SetIntegrator(integrators.NewImprovedEuler())
-	w.SetTimeStep(DefaultTimestep)
+	w.SetTimeStep(time.Second / 120)
+	log.Println("init world", w)
 	return
 }
 
@@ -88,8 +80,9 @@ type world struct {
 	integrator integrators.Integrator
 	renderer   renderers.Renderer
 
-	paused   bool
-	warp     time.Duration
+	paused bool
+	//warp     time.Duration
+	warp     float64
 	time     time.Time
 	lastTime time.Time
 
@@ -167,6 +160,7 @@ func (w *world) RemoveBehavior(behavior behaviors.Behavior) {
 func (w *world) Bodies() []bodies.Body { return w.bodies }
 func (w *world) AddBody(body bodies.Body) {
 	w.RemoveBody(body)
+	body.Recalc()
 	//body.SetWorld(w)
 	w.bodies = append(w.bodies, body)
 	w.Emit("add:body", body)
@@ -225,7 +219,8 @@ func (w *world) Step(now time.Time) {
 	}
 
 	// FIXME
-	invWarp := 1.0 / float64(w.warp.Seconds())
+	invWarp := 1.0 / w.warp
+	//invWarp := 1.0 / float64(w.warp)
 
 	animDt := time.Duration(float64(w.dt) * invWarp)
 	// new time is specified, or just oni iteration ahead
@@ -244,7 +239,8 @@ func (w *world) Step(now time.Time) {
 	}
 
 	// the "world" time between this step and the last. Adjust for warp
-	worldDiff := time.Duration(float64(animDiff) * w.warp.Seconds())
+	worldDiff := time.Duration(float64(animDiff) * w.warp)
+	//worldDiff := animDiff * w.warp
 
 	// the target time for the world time to step to
 	target := w.time.Add(worldDiff - w.dt)
@@ -253,7 +249,7 @@ func (w *world) Step(now time.Time) {
 	for w.time.Sub(target) <= 0 {
 		w.time = w.time.Add(w.dt)
 		w.animTime = w.animTime.Add(animDt)
-		w.Itertate(w.dt)
+		w.Itertate(w.dt * 1000)
 	}
 
 	w.meta.FPS = int(1000.0 / now.Sub(w.lastTime).Seconds())

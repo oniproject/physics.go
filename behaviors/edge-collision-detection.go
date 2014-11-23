@@ -3,7 +3,6 @@ package behaviors
 import (
 	"github.com/oniproject/physics.go/bodies"
 	"github.com/oniproject/physics.go/geom"
-	"log"
 )
 
 type EdgeCollisionDetecton struct {
@@ -74,7 +73,6 @@ func (this *EdgeCollisionDetecton) checkAll() {
 		}
 	}
 	if len(collisions) != 0 {
-		log.Print(this.Channel, collisions)
 		this.world.Emit(this.Channel, collisions)
 	}
 }

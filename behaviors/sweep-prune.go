@@ -90,8 +90,6 @@ func (b *SweepPrune) trackBody(body bodies.Body) {
 	for xyz := 0; xyz < maxDof; xyz++ {
 		b.tracked[xyz] = append(b.tracked[xyz], tracker)
 	}
-
-	log.Println("trackBody", tracker, body)
 }
 
 func (b *SweepPrune) untrackBody(body bodies.Body) {
