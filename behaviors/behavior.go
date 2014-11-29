@@ -12,12 +12,13 @@ type World interface {
 }
 
 type Collision struct {
-	BodyA   bodies.Body // the first body
-	BodyB   bodies.Body // the second body
-	Norm    geom.Vector // the normal vector
-	MTV     geom.Vector // the minimum transit vector (the dir and len needed to extract bodyB from bodyA)
-	Pos     geom.Vector // the collision point
-	Overlap float64     // the amount bodyA overlaps bodyB
+	BodyA              bodies.Body // the first body
+	BodyB              bodies.Body // the second body
+	Norm               geom.Vector // the normal vector
+	MTV                geom.Vector // the minimum transit vector (the dir and len needed to extract bodyB from bodyA)
+	Pos                geom.Vector // the collision point
+	Overlap            float64     // the amount bodyA overlaps bodyB
+	CollidedPreviously bool
 }
 
 type Behavior interface {

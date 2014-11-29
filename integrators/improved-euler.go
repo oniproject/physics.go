@@ -20,7 +20,8 @@ func (this *ImprovedEuler) IntegrateVelocities(things []bodies.Body, dt time.Dur
 	drag := 1 - this.Drag
 
 	for _, body := range things {
-		if body.Treatment() == bodies.TREATMENT_STATIC {
+		body.SleepCheck(dt)
+		if body.Treatment() == bodies.TREATMENT_STATIC || body.IsSleep() {
 			// set the velocity and acceleration to zero
 			body.State().Vel = geom.Vector{}
 			body.State().Acc = geom.Vector{}
@@ -60,7 +61,8 @@ func (this *ImprovedEuler) IntegratePositions(things []bodies.Body, dt time.Dura
 	halfdtdt := 0.5 * dt.Seconds() * dt.Seconds()
 
 	for _, body := range things {
-		if body.Treatment() == bodies.TREATMENT_STATIC {
+		body.SleepCheck(dt)
+		if body.Treatment() == bodies.TREATMENT_STATIC || body.IsSleep() {
 			continue
 		}
 

@@ -3,7 +3,14 @@ package bodies
 import (
 	"github.com/oniproject/physics.go/geom"
 	"github.com/oniproject/physics.go/geometries"
+	"time"
 )
+
+type World interface {
+	SleepVarianceLimit() float64
+	SleepSpeedLimit() float64
+	SleepTimeLimit() time.Duration
+}
 
 type Angular struct {
 	Pos, Vel, Acc float64
@@ -57,4 +64,11 @@ type Body interface {
 	SetVelocity(float64, float64)
 
 	MOI() float64
+
+	SetWorld(World)
+
+	IsSleep() bool
+	Sleep()
+	WakeUp()
+	SleepCheck(dt time.Duration)
 }

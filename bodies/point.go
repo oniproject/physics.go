@@ -3,6 +3,8 @@ package bodies
 import (
 	"github.com/oniproject/physics.go/geom"
 	"github.com/oniproject/physics.go/geometries"
+	"math"
+	"time"
 )
 
 type Point struct {
@@ -19,6 +21,21 @@ type Point struct {
 	uid   int64
 
 	geometry geometries.Geometry
+
+	asleep              bool
+	sleepAngPosMean     float64
+	sleepAngPosVariance float64
+	sleepPosMean        geom.Vector
+	sleepPosVariance    geom.Vector
+	sleepMeanK          float64
+
+	sleepIdleTime time.Duration
+
+	SleepTimeLimit     time.Duration
+	SleepSpeedLimit    float64
+	SleepVarianceLimit float64
+
+	world World
 }
 
 var uidGen int64 = 0
@@ -104,3 +121,113 @@ func (p *Point) AABB(angle float64) (aabb geom.AABB) {
 }
 
 func (p *Point) Recalc() {}
+
+func (p *Point) SetWorld(world World) {
+	if p.world != nil {
+		// disconnect
+	}
+	if world != nil {
+		// connect
+	}
+	p.world = world
+}
+
+func (p *Point) IsSleep() bool { return p.asleep }
+func (p *Point) Sleep()        { p.asleep = true }
+func (p *Point) WakeUp() {
+	p.asleep = false
+	p.sleepAngPosMean = 0
+	p.sleepAngPosVariance = 0
+	p.sleepPosMean = geom.Vector{}
+	p.sleepPosVariance = geom.Vector{}
+	p.sleepMeanK = 0
+}
+func (p *Point) SleepCheck(dt time.Duration) {
+	aabb := p.geometry.AABB(0)
+	r := math.Max(aabb.HW, aabb.HH)
+
+	if p.asleep {
+		// check vel
+		v := p.state.Vel.Magnitude() + math.Abs(r*p.state.Angular.Vel)
+		limit := p.SleepSpeedLimit
+		if limit == 0 && p.world != nil {
+			limit = p.world.SleepSpeedLimit()
+		}
+
+		if v >= limit {
+			p.WakeUp()
+			return
+		}
+	}
+
+	p.sleepMeanK++
+
+	p.sleepPosMean, p.sleepPosVariance =
+		p.pushRunningVectorAvg(p.sleepMeanK,
+			p.sleepPosMean,
+			p.sleepPosVariance,
+			p.state.Pos)
+	p.sleepAngPosMean, p.sleepAngPosVariance =
+		p.pushRunningAvg(p.sleepMeanK,
+			p.sleepAngPosMean,
+			p.sleepAngPosVariance,
+			p.state.Angular.Pos)
+
+	v := p.sleepPosVariance.Magnitude() + math.Abs(r*p.sleepAngPosVariance)
+	limit := p.SleepVarianceLimit
+	if limit == 0 && p.world != nil {
+		limit = p.world.SleepVarianceLimit()
+	}
+
+	if v <= limit {
+		// check idle time
+		limit := p.SleepTimeLimit
+		if limit == 0 && p.world != nil {
+			limit = p.world.SleepTimeLimit()
+		}
+
+		p.sleepIdleTime += dt
+
+		if p.sleepIdleTime > limit {
+			p.Sleep()
+		}
+	} else {
+		p.WakeUp()
+	}
+
+}
+
+// Running average
+// http://www.johndcook.com/blog/standard_deviation
+// k is num elements
+// m is current mean
+// s is current std deviation
+// v is value to push
+func (p *Point) pushRunningAvg(k, m, s, v float64) (float64, float64) {
+	x := v - m
+	// Mk = Mk-1+ (xk – Mk-1)/k
+	// Sk = Sk-1 + (xk – Mk-1)*(xk – Mk).
+	m += x / k
+	s += x * (v - m)
+	return m, s
+}
+
+// Running vector average
+// http://www.johndcook.com/blog/standard_deviation
+// k is num elements
+// m is current mean (vector)
+// s is current std deviation (vector)
+// v is vector to push
+func (p *Point) pushRunningVectorAvg(k float64, m, s, v geom.Vector) (geom.Vector, geom.Vector) {
+	invK := 1 / k
+	x := v.X - m.X
+	y := v.Y - m.Y
+
+	// Mk = Mk-1+ (xk – Mk-1)/k
+	// Sk = Sk-1 + (xk – Mk-1)*(xk – Mk).
+	m = m.Plus(geom.Vector{x * invK, y * invK})
+	x *= v.X - m.Y
+	y *= v.Y - m.Y
+	s = s.Plus(geom.Vector{x, y})
+	return m, s
+}

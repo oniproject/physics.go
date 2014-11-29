@@ -39,14 +39,8 @@ func Test_World(t *testing.T) {
 			collide := false
 			callback := func(interface{}) { collide = true }
 
-			candidatesLog := func(data interface{}) { Println("!!!!!!!!!! candidatesLog", data) }
-			world.On("collisions:candidates", &candidatesLog)
-
 			world.On("collisions:detected", &callback)
 			world.Step(time.Time{})
-			for _, body := range world.Bodies() {
-				Println("body", body.State().Pos)
-			}
 			world.Off("collisions:detected", &callback)
 
 			So(collide, ShouldBeTrue)

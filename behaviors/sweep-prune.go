@@ -61,14 +61,14 @@ func (b *SweepPrune) SetWorld(world World) {
 		// disconnect
 		world.Off("add:body", &b.trackBodyC)
 		world.Off("remove:body", &b.untrackBodyC)
-		world.Off("integrate:velocities", &b.sweepC)
+		world.Off("integrate:positions", &b.sweepC)
 		b.clear()
 	}
 	if world != nil {
 		// connect
 		world.On("add:body", &b.trackBodyC)
 		world.On("remove:body", &b.untrackBodyC)
-		world.On("integrate:velocities", &b.sweepC)
+		world.On("integrate:positions", &b.sweepC)
 	}
 	b.world = world
 }

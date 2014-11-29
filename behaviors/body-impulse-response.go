@@ -13,11 +13,18 @@ type BodyImpulseResponse struct {
 
 	targets []bodies.Body
 	world   World
+
+	MtvThreshold                     float64
+	BodyExtractDropoff               float64
+	ForceWakeupAboveOverlapThreshold bool
 }
 
 func NewBodyImpulseResponse() Behavior {
 	b := &BodyImpulseResponse{
-		Channel: "collisions:detected",
+		Channel:                          "collisions:detected",
+		MtvThreshold:                     1,
+		BodyExtractDropoff:               0.5,
+		ForceWakeupAboveOverlapThreshold: true,
 	}
 	b.respondC = func(data interface{}) { b.respond(data.([]Collision)) }
 	return b
@@ -40,7 +47,7 @@ func (b *BodyImpulseResponse) SetWorld(world World) {
 func (b *BodyImpulseResponse) respond(collisions []Collision) {
 	// TODO shuffle
 	for _, c := range collisions {
-		b.collideBodies(c.BodyA, c.BodyB, c.Norm, c.Pos, c.MTV, false)
+		b.collideBodies(c.BodyA, c.BodyB, c.Norm, c.Pos, c.MTV, c.CollidedPreviously)
 	}
 }
 
@@ -56,15 +63,27 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, norm, poin
 	stateA, stateB := bodyA.State(), bodyB.State()
 
 	// extract bodies
-	switch {
-	case fixedA:
-		stateB.Pos = stateB.Pos.Plus(mtv)
-	case fixedB:
-		stateA.Pos = stateA.Pos.Minus(mtv)
-	default:
-		mtv = mtv.Times(0.5)
-		stateA.Pos = stateA.Pos.Minus(mtv)
-		stateB.Pos = stateB.Pos.Plus(mtv)
+	if !contact {
+		if mtv.MagnitudeSquared() < b.MtvThreshold {
+			mtv = mtv.Times(b.BodyExtractDropoff)
+		} else if b.ForceWakeupAboveOverlapThreshold {
+			bodyA.WakeUp()
+			bodyB.WakeUp()
+		}
+		switch {
+		case fixedA:
+			stateB.Pos = stateB.Pos.Plus(mtv)
+			stateB.Old.Pos = stateB.Old.Pos.Plus(mtv)
+		case fixedB:
+			stateA.Pos = stateA.Pos.Minus(mtv)
+			stateA.Old.Pos = stateA.Old.Pos.Minus(mtv)
+		default:
+			mtv = mtv.Times(0.5)
+			stateA.Pos = stateA.Pos.Minus(mtv)
+			stateA.Old.Pos = stateA.Old.Pos.Minus(mtv)
+			stateB.Pos = stateB.Pos.Plus(mtv)
+			stateB.Old.Pos = stateB.Old.Pos.Plus(mtv)
+		}
 	}
 
 	// inverse masses and moments of inertia.
@@ -86,10 +105,7 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, norm, poin
 	}
 
 	// coefficient of restitution between bodies
-	var cor float64
-	if !contact {
-		cor = bodyA.Restitution() * bodyB.Restitution()
-	}
+	cor := bodyA.Restitution() * bodyB.Restitution()
 
 	// coefficient of friction between bodies
 	cof := bodyA.Cof() * bodyB.Cof()
@@ -144,8 +160,14 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, norm, poin
 		stateA.Angular.Vel += impulse * invMoiA * rAreg
 	}
 
-	//inContact := (impulse < 0.004)
-	inContact := false
+	//* recalc vreg
+	vAB = stateB.Vel.
+		Plus(rB.Perp(false).Times(stateB.Angular.Vel)).
+		Minus(stateA.Vel).
+		Plus(rA.Perp(false).Times(stateA.Angular.Vel))
+	// */
+
+	vreg = vAB.Proj(perp)
 
 	// if we have friction and a relative velocity perpendicular to the normal
 	if cof != 0 && vreg != 0 {
@@ -160,26 +182,13 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, norm, poin
 		// allowed amount
 
 		// maximum impulse allowed by kinetic friction
-		max := vreg / (invMassA + invMassB + invMoiA*rAproj*rAproj + invMoiB*rBproj*rBproj)
+		max := math.Abs(vreg) / (invMassA + invMassB + invMoiA*rAproj*rAproj + invMoiB*rBproj*rBproj)
 
-		if !inContact {
-			// the sign of vreg (plus or minus 1)
-			sign := 1
-			if vreg < 0 {
-				sign = -1
-			}
-
-			// get impulse due to friction
-			impulse *= float64(sign) * cof
-			// make sure the impulse isnt giving the system energy
-			if sign == 1 {
-				impulse = math.Min(impulse, max)
-			} else {
-				impulse = math.Max(impulse, max)
-			}
-		} else {
-			impulse = max
-		}
+		// get impulse due to friction
+		impulse = cof * math.Abs(impulse)
+		// constrain the impulse within the "friction cone" (max < mu * impulse)
+		impulse = math.Min(impulse, max)
+		impulse = math.Copysign(impulse, vreg)
 
 		// apply frictional impulse
 		switch {
@@ -199,5 +208,12 @@ func (b *BodyImpulseResponse) collideBodies(bodyA, bodyB bodies.Body, norm, poin
 			stateA.Vel = stateA.Vel.Plus(perp) // XXX
 			stateA.Angular.Vel += impulse * invMoiA * rAproj
 		}
+	}
+
+	if bodyA.IsSleep() {
+		bodyA.SleepCheck(0)
+	}
+	if bodyB.IsSleep() {
+		bodyB.SleepCheck(0)
 	}
 }

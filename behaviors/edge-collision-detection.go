@@ -44,11 +44,11 @@ func (b *EdgeCollisionDetecton) Targets() []bodies.Body {
 func (b *EdgeCollisionDetecton) SetWorld(world World) {
 	if b.world != nil {
 		// disconnect
-		world.Off("integrate:velocities", &b.checkAllC)
+		world.Off("integrate:positions", &b.checkAllC)
 	}
 	if world != nil {
 		// connect
-		world.On("integrate:velocities", &b.checkAllC)
+		world.On("integrate:positions", &b.checkAllC)
 	}
 	b.world = world
 }

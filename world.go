@@ -6,7 +6,6 @@ import (
 	"github.com/oniproject/physics.go/integrators"
 	"github.com/oniproject/physics.go/renderers"
 	"github.com/oniproject/physics.go/util"
-	"log"
 	"time"
 )
 
@@ -49,7 +48,12 @@ type World interface {
 	TimeStep() time.Duration
 	SetTimeStep(now time.Duration)
 
-	//Warp()
+	SleepVarianceLimit() float64
+	SleepSpeedLimit() float64
+	SleepTimeLimit() time.Duration
+
+	Warp() float64
+	SetWarp(float64)
 
 	util.EventTarget
 }
@@ -66,7 +70,6 @@ func NewWorldImprovedEuler() (w World) {
 	}
 	w.SetIntegrator(integrators.NewImprovedEuler())
 	w.SetTimeStep(time.Second / 120)
-	log.Println("init world", w)
 	return
 }
 
@@ -93,6 +96,13 @@ type world struct {
 
 	util.PubSub
 }
+
+func (w *world) SleepVarianceLimit() float64   { return 2 }
+func (w *world) SleepSpeedLimit() float64      { return 0.1 }
+func (w *world) SleepTimeLimit() time.Duration { return time.Second / 2 }
+
+func (w *world) Warp() float64     { return w.warp }
+func (w *world) SetWarp(v float64) { w.warp = v }
 
 func (w *world) Integrator() integrators.Integrator { return w.integrator }
 func (w *world) SetIntegrator(integrator integrators.Integrator) {
@@ -161,7 +171,7 @@ func (w *world) Bodies() []bodies.Body { return w.bodies }
 func (w *world) AddBody(body bodies.Body) {
 	w.RemoveBody(body)
 	body.Recalc()
-	//body.SetWorld(w)
+	body.SetWorld(w)
 	w.bodies = append(w.bodies, body)
 	w.Emit("add:body", body)
 }
